@@ -96,17 +96,14 @@ def apply_texture_to_image():
     for coord in coords:
         img = apply_texture(img, texture_path, coord)
 
-    # Define the result path
-    result_path = 'static/uploads/result.jpg'
-
-    # Remove existing result image if it exists
-    if os.path.exists(result_path):
-        os.remove(result_path)
+    # Define the result path with a unique filename
+    result_filename = f"{os.path.splitext(os.path.basename(image_url))[0]}_{texture_name}_{int(time.time())}.jpg"
+    result_path = os.path.join('static/uploads', result_filename)
 
     # Save the resulting image
     cv2.imwrite(result_path, img)
 
-    return jsonify({"url": url_for('static', filename='uploads/result.jpg')})
+    return jsonify({"url": url_for('static', filename=f'uploads/{result_filename}')})
 
 if __name__ == '__main__':
     app.run(debug=True)
