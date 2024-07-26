@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify, render_template, url_for
 import cv2
 import numpy as np
 from PIL import Image
-import io
 import os
+import time
 
 app = Flask(__name__)
 
@@ -48,6 +48,10 @@ def home():
 @app.route('/upload', methods=['POST'])
 def upload_image():
     file = request.files['image']
+    filename = file.filename
+    timestamp = int(time.time())
+    unique_filename = f"{os.path.splitext(filename)[0]}_{timestamp}{os.path.splitext(filename)[1]}"
+    
     npimg = np.frombuffer(file.read(), np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
@@ -68,22 +72,22 @@ def upload_image():
             if 1.5 < aspect_ratio < 5.0 and w > 50 and h > 50:  # Filter based on aspect ratio and size
                 countertop_coords.append((x, y, x + w, y + h))
 
-    result_path = 'static/uploads/uploaded_image.jpg'
+    result_path = os.path.join('static/uploads', unique_filename)
     cv2.imwrite(result_path, img)
 
-    return jsonify({"coords": countertop_coords, "image_url": url_for('static', filename='uploads/uploaded_image.jpg')})
+    return jsonify({"coords": countertop_coords, "image_url": url_for('static', filename=f'uploads/{unique_filename}')})
 
 @app.route('/apply_texture', methods=['POST'])
 def apply_texture_to_image():
-    file = request.files['image']
+    image_url = request.form['image_url']
     texture_name = request.form['texture']
     coords = request.form.getlist('coords', type=int)
 
     # Convert coordinates to tuples
     coords = [(coords[i], coords[i+1], coords[i+2], coords[i+3]) for i in range(0, len(coords), 4)]
 
-    npimg = np.frombuffer(file.read(), np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    image_path = os.path.join('static/uploads', os.path.basename(image_url))
+    img = cv2.imread(image_path)
 
     # Load the selected texture
     texture_path = f'static/{texture_name}.webp'
